@@ -1,0 +1,90 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: wp-blog-db-pass
+  namespace: company-blog
+type: Opaque
+data:
+  # we typically load these from AWS SecretsManager, this is
+  # hard-coded to avoid any unexpected errors
+  password: Y29kZWNoYWxsZW5nZQ==
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wordpress-mysql
+  namespace: company-blog
+  labels:
+    app: wp-blog
+spec:
+  ports:
+    - port: 3306
+  selector:
+    app: wp-blog
+    tier: mysql
+  clusterIP: None
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pv-claim
+  namespace: company-blog
+  labels:
+    app: wp-blog
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wordpress-mysql
+  labels:
+    app: wp-blog
+spec:
+  selector:
+    matchLabels:
+      app: wp-blog
+      tier: mysql
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: wp-blog
+        tier: mysql
+    spec:
+      containers:
+      - image: mysql:5.7
+        name: mysql
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: wp-blog-db-pass
+              key: password
+        - name: MYSQL_DATABASE
+          value: wp-blog
+        ports:
+        - containerPort: 3306
+          name: mysql
+        readinessProbe:
+          tcpSocket:
+            port: 3306
+          initialDelaySeconds: 30
+          periodSeconds: 5
+        livenessProbe:
+          tcpSocket:
+            port: 3306
+          initialDelaySeconds: 300
+          periodSeconds: 10
+        volumeMounts:
+        - name: mysql-persistent-storage
+          mountPath: /var/lib/mysql
+      volumes:
+      - name: mysql-persistent-storage
+        persistentVolumeClaim:
+          claimName: mysql-pv-claim
