@@ -40,7 +40,7 @@ This repository contains:
 
 ### Requirements
 
-1. fix the MySQL stateful set
+1. fix the MySQL deployment
 2. add a stateless Wordpress deployment matching the selectors on the `wordpress` service
 3. add liveness and readiness probes to all containers
 4. make sure all pods start up correctly and remain healthy after `make deploy`

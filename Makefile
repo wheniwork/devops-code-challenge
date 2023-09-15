@@ -35,7 +35,7 @@ test-1-version: ## run kubernetes version test
 
 test-2-health: ## run pod health test
 	@echo "running pod health test"
-	if kubectl -n code-challenge get pods -o=jsonpath='{.items[*].status.phase}' | grep -qvx Running; \
+	if kubectl -n company-blog get pods -o=jsonpath='{.items[*].status.phase}' | grep -qvx Running; \
 	then \
 		echo "health test passed"; \
 	else \
@@ -45,7 +45,7 @@ test-2-health: ## run pod health test
 
 test-3-curl: ## run curl request test
 	@echo "running curl test"
-	if curl --fail $(shell minikube service wordpress -n code-challenge --url); \
+	if curl --fail $(shell minikube service wordpress -n company-blog --url); \
 	then \
 		echo "curl test passed"; \
 	else \
@@ -56,9 +56,9 @@ test-3-curl: ## run curl request test
 test-4-probes: ## run pod probe test
 	@echo "running probe test"
 	( \
-		export IMAGE_COUNT="$(shell kubectl -n code-challenge get pods -o=jsonpath='{range .items[*].spec.containers[*].image}{.}{"\n"}{end}' | wc -l | tr -d ' ')"; \
-		export LIVENESS_COUNT="$(shell kubectl -n code-challenge get pods -o=jsonpath='{range .items[*].spec.containers[*].livenessProbe}{.}{"\n"}{end}' | wc -l | tr -d ' ')"; \
-		export READINESS_COUNT="$(shell kubectl -n code-challenge get pods -o=jsonpath='{range .items[*].spec.containers[*].readinessProbe}{.}{"\n"}{end}' | wc -l | tr -d ' ')"; \
+		export IMAGE_COUNT="$(shell kubectl -n company-blog get pods -o=jsonpath='{range .items[*].spec.containers[*].image}{.}{"\n"}{end}' | wc -l | tr -d ' ')"; \
+		export LIVENESS_COUNT="$(shell kubectl -n company-blog get pods -o=jsonpath='{range .items[*].spec.containers[*].livenessProbe}{.}{"\n"}{end}' | wc -l | tr -d ' ')"; \
+		export READINESS_COUNT="$(shell kubectl -n company-blog get pods -o=jsonpath='{range .items[*].spec.containers[*].readinessProbe}{.}{"\n"}{end}' | wc -l | tr -d ' ')"; \
 		if [ $$IMAGE_COUNT -ne $$LIVENESS_COUNT ]; then echo "failed liveness probe test!"; exit 1; fi; \
 		if [ $$IMAGE_COUNT -ne $$READINESS_COUNT ]; then echo "failed readiness probe test!"; exit 1; fi; \
 		echo "probe test passed"; \
@@ -66,7 +66,7 @@ test-4-probes: ## run pod probe test
 
 test-5-endpoints:
 	@echo "running endpoint test"
-	if kubectl -n code-challenge describe svc | grep Endpoints | grep -q '<none>'; \
+	if kubectl -n company-blog describe svc | grep Endpoints | grep -q '<none>'; \
 	then \
 		echo "service endpoint test failed!"; \
 		exit 1; \

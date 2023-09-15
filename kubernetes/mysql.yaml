@@ -1,8 +1,8 @@
 apiVersion: v1
 kind: Secret
 metadata:
-  name: wordpress-db-pass
-  namespace: code-challenge
+  name: wp-blog-db-pass
+  namespace: company-blog
 type: Opaque
 data:
   # we typically load these from AWS SecretsManager, this is
@@ -13,7 +13,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: wordpress-mysql
-  namespace: code-challenge
+  namespace: company-blog
   labels:
     app: wp-blog
 spec:
@@ -28,7 +28,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: mysql-pv-claim
-  namespace: code-challenge
+  namespace: company-blog
   labels:
     app: wp-blog
 spec:
@@ -64,10 +64,10 @@ spec:
         - name: MYSQL_ROOT_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: wordpress-db-pass
+              name: wp-blog-db-pass
               key: password
         - name: MYSQL_DATABASE
-          value: blog
+          value: wp-blog
         ports:
         - containerPort: 3306
           name: mysql
@@ -76,6 +76,11 @@ spec:
             port: 3306
           initialDelaySeconds: 30
           periodSeconds: 5
+        livenessProbe:
+          tcpSocket:
+            port: 3306
+          initialDelaySeconds: 300
+          periodSeconds: 10
         volumeMounts:
         - name: mysql-persistent-storage
           mountPath: /var/lib/mysql
