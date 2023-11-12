@@ -22,7 +22,6 @@ spec:
   selector:
     app: wp-blog
     tier: mysql
-  clusterIP: None
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -39,18 +38,18 @@ spec:
       storage: 20Gi
 ---
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet  # Changed Deployment to StatefulSet
 metadata:
   name: wordpress-mysql
   labels:
     app: wp-blog
 spec:
+  serviceName: "wordpress-mysql"  # Added serviceName for stable network identity
+  replicas: 1  # Set the number of replicas to 1 for a single-node MySQL
   selector:
     matchLabels:
       app: wp-blog
       tier: mysql
-  strategy:
-    type: Recreate
   template:
     metadata:
       labels:
@@ -84,7 +83,60 @@ spec:
         volumeMounts:
         - name: mysql-persistent-storage
           mountPath: /var/lib/mysql
-      volumes:
-      - name: mysql-persistent-storage
-        persistentVolumeClaim:
-          claimName: mysql-pv-claim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wordpress
+  namespace: company-blog
+  labels:
+    app: wp-blog
+spec:
+  ports:
+    - port: 80
+  selector:
+    app: wp-blog
+    tier: frontend
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wordpress
+  labels:
+    app: wp-blog
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wp-blog
+      tier: frontend
+  template:
+    metadata:
+      labels:
+        app: wp-blog
+        tier: frontend
+    spec:
+      containers:
+      - image: wordpress:latest
+        name: wordpress
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 300
+          periodSeconds: 10
+        env:
+        - name: WORDPRESS_DB_HOST
+          value: "wordpress-mysql"
+        - name: WORDPRESS_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: wp-blog-db-pass
+              key: password
+
